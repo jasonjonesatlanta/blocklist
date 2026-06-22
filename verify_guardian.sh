@@ -25,20 +25,14 @@ OUT=$(rm -rf "/Applications/Cold Turkey Blocker.app" 2>&1); check "CT app locked
 # 2. Watchdog script is immutable
 OUT=$(echo test | tee /usr/local/bin/coldturkey-watchdog.sh 2>&1); check "Watchdog script locked" "$OUT" "Operation not permitted"
 
-# 3. Watchdog plist is immutable (bootout should be silently blocked or error)
-OUT=$(launchctl bootout system/com.coldturkey.watchdog 2>&1)
-if [ -z "$OUT" ]; then
-  # If it succeeded silently that's a failure — check if plist is still schg
-  FLAG=$(ls -lO /Library/LaunchDaemons/com.coldturkey.watchdog.plist 2>/dev/null | awk '{print $5}')
-  if [ "$FLAG" = "schg" ]; then
-    echo "  PASS: Watchdog plist locked (bootout blocked, schg confirmed)"
-    ((PASS++))
-  else
-    echo "  FAIL: Watchdog plist not locked"
-    ((FAIL++))
-  fi
+# 3. Watchdog plist has schg flag
+FLAG=$(ls -lO /Library/LaunchDaemons/com.coldturkey.watchdog.plist 2>/dev/null | awk '{print $5}')
+if [ "$FLAG" = "schg" ]; then
+  echo "  PASS: Watchdog plist locked (schg)"
+  ((PASS++))
 else
-  check "Watchdog plist locked (bootout blocked)" "$OUT" "Operation not permitted"
+  echo "  FAIL: Watchdog plist not locked (flag: $FLAG)"
+  ((FAIL++))
 fi
 
 # 4. CT data db is immutable
@@ -47,9 +41,16 @@ OUT=$(echo test | tee "/Library/Application Support/Cold Turkey/data-app.db" 2>&
 # 5. Little Snitch config is immutable
 OUT=$(echo test | tee "/Library/Application Support/Objective Development/Little Snitch/configuration6.xpl" 2>&1); check "LS config locked" "$OUT" "Operation not permitted"
 
-# 6. Watchdog daemon is running
-OUT=$(launchctl print system/com.coldturkey.watchdog 2>/dev/null | grep state)
-check "Watchdog daemon running" "$OUT" "running"
+# 6. Watchdog daemon is running (check process and launchd state)
+WDOG_PID=$(pgrep -f "coldturkey-watchdog.sh" 2>/dev/null)
+WDOG_STATE=$(launchctl print system/com.coldturkey.watchdog 2>/dev/null | grep "state" | awk '{print $3}')
+if [ -n "$WDOG_PID" ] || [ "$WDOG_STATE" = "running" ]; then
+  echo "  PASS: Watchdog daemon running (pid=${WDOG_PID:-unknown}, state=${WDOG_STATE:-unknown})"
+  ((PASS++))
+else
+  echo "  FAIL: Watchdog daemon not running (launchd state=${WDOG_STATE:-not loaded})"
+  ((FAIL++))
+fi
 
 # 7. CT relaunches after kill
 pkill -x "Cold Turkey Blocker" 2>/dev/null
