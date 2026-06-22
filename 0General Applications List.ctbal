@@ -1,0 +1,18 @@
+app:Battle.net.app:net.battle.app
+app:Books.app:com.apple.ibooksx
+app:DuckDuckGo.app:com.duckduckgo.macos.browser
+app:Firefox.app:org.mozilla.firefox
+app:Little Snitch.app:at.obdev.littlesnitch
+file:Little Snitch.app
+app:Microsoft Edge.app:com.microsoft.edgemac
+app:Music.app:com.apple.music
+app:News.app:com.apple.news
+app:Opera.app:com.operasoftware.opera
+app:Podcasts.app:com.apple.podcasts
+app:Roblox.app:com.roblox.robloxplayer
+app:Safari.app:com.apple.safari
+app:StarCraft II.app:net.battle.bootstrapper
+app:Steam.app:com.valvesoftware.steam
+app:The Battle for Wesnoth.app:org.wesnoth.wesnoth
+app:Visual Studio Code.app:com.microsoft.vscode
+app:Vivaldi.app:com.vivaldi.vivaldi
