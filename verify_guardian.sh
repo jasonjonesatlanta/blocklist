@@ -38,8 +38,14 @@ fi
 # 4. CT data db is immutable
 OUT=$(echo test | tee "/Library/Application Support/Cold Turkey/data-app.db" 2>&1); check "CT data-app.db locked" "$OUT" "Operation not permitted"
 
-# 5. Little Snitch config is immutable
-OUT=$(echo test | tee "/Library/Application Support/Objective Development/Little Snitch/configuration6.xpl" 2>&1); check "LS config locked" "$OUT" "Operation not permitted"
+# 5. Little Snitch config is immutable (any configuration*.xpl)
+LS_CONFIG=$(ls "/Library/Application Support/Objective Development/Little Snitch/configuration"*.xpl 2>/dev/null | head -1)
+if [ -n "$LS_CONFIG" ]; then
+  OUT=$(echo test | tee "$LS_CONFIG" 2>&1); check "LS config locked ($LS_CONFIG)" "$OUT" "Operation not permitted"
+else
+  echo "  FAIL: No LS config file found"
+  ((FAIL++))
+fi
 
 # 6. Watchdog daemon is running (check process and launchd state)
 WDOG_PID=$(pgrep -f "coldturkey-watchdog.sh" 2>/dev/null)
@@ -57,6 +63,25 @@ pkill -x "Cold Turkey Blocker" 2>/dev/null
 sleep 6
 OUT=$(pgrep -x "Cold Turkey Blocker" && echo "relaunched" || echo "not relaunched")
 check "CT relaunches after kill" "$OUT" "relaunched"
+
+# 8. CT recovers from SIGSTOP
+CT_PID=$(pgrep -x "Cold Turkey Blocker" 2>/dev/null)
+if [ -n "$CT_PID" ]; then
+  kill -STOP "$CT_PID" 2>/dev/null
+  sleep 8
+  NEW_PID=$(pgrep -x "Cold Turkey Blocker" 2>/dev/null)
+  NEW_STATE=$(ps -o state= -p "$NEW_PID" 2>/dev/null | tr -d ' ')
+  if [ -n "$NEW_PID" ] && [[ "$NEW_STATE" != *T* ]]; then
+    echo "  PASS: CT recovers from SIGSTOP (new pid=$NEW_PID)"
+    ((PASS++))
+  else
+    echo "  FAIL: CT still stopped or dead after SIGSTOP (pid=${NEW_PID:-none}, state=${NEW_STATE:-none})"
+    ((FAIL++))
+  fi
+else
+  echo "  FAIL: CT not running before SIGSTOP test"
+  ((FAIL++))
+fi
 
 echo ""
 echo "Results: $PASS passed, $FAIL failed"
