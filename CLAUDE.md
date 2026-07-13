@@ -2,20 +2,28 @@
 
 ## Git Identity
 
-Always commit in this repo as:
+**CRITICAL: No commit in this repo may contain the machine's default git identity (the user's personal name/email) in ANY field — author OR committer.** The only identity allowed in commit metadata is `jasonjonesatlanta <jasonjonesatlanta@gmail.com>`, for both fields. Note this file is tracked and pushed publicly — never write the personal name or email into this file or any other file in the repo either.
 
-```
-git -c user.name="jasonjonesatlanta" -c user.email="jasonjonesatlanta@gmail.com" commit ...
-```
-
-Or set it locally before committing:
+The repo's local git config is already set to this identity (`git config user.name` / `user.email`). Verify it before committing; if it's ever missing, re-set it:
 
 ```
 git config user.name "jasonjonesatlanta"
 git config user.email "jasonjonesatlanta@gmail.com"
 ```
 
-Every commit made in this repo must use the name `jasonjonesatlanta`.
+Watch out: `-c user.name=... -c user.email=...` on the `commit` command only covers that one commit. Operations that **recreate** commits — `rebase --continue`, `cherry-pick`, `commit --amend`, `merge` — stamp a NEW committer field from the current config/environment, and will leak the personal identity if the local config isn't set. When running any of those, also export:
+
+```
+GIT_COMMITTER_NAME=jasonjonesatlanta GIT_COMMITTER_EMAIL=jasonjonesatlanta@gmail.com
+```
+
+**After every commit, rebase, or amend, verify both fields before pushing:**
+
+```
+git log -1 --format='author: %an <%ae>%ncommitter: %cn <%ce>'
+```
+
+If either field shows the personal identity, fix it (amend with the env vars above) before the commit leaves the machine.
 
 ---
 
